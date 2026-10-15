@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEMON TV - Streaming Plataforma</title>
+    <style>
+        /* ESTILOS PREMIUM LEMON TV (Oscuro con detalles Amarillos #FFF200) */
+        body {
+            background-color: #0b0b0b;
+            color: #ffffff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* BANNER LATERAL DE NAVEGACIÓN */
+        aside {
+            background-color: #121212;
+            width: 220px;
+            min-width: 220px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #222;
+        }
+        .logo-container {
+            padding: 30px 20px;
+            font-size: 26px;
+            font-weight: 900;
+            color: #FFF200; /* Amarillo Lemon */
+            letter-spacing: 2px;
+            text-align: center;
+            border-bottom: 1px solid #1e1e1e;
+        }
+        .menu-nav {
+            padding: 20px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .btn-nav {
+            background: none;
+            border: none;
+            color: #aaaaaa;
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .btn-nav:hover, .btn-nav.active {
+            color: #000000;
+            background-color: #FFF200; /* Efecto activo amarillo */
+        }
+
+        /* CONTENIDO PRINCIPAL */
+        main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow-y: auto;
+        }
+        header {
+            background-color: rgba(18, 18, 18, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            display: flex;
+            justify-content: flex-end;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            padding: 10px 15px;
+            width: 280px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background-color: #1a1a1a;
+            color: white;
+            outline: none;
+        }
+        input[type="text"]:focus {
+            border-color: #FFF200;
+        }
+        .btn-search {
+            padding: 10px 20px;
+            background-color: #FFF200;
+            color: #000000;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .content-body {
+            padding: 30px;
+        }
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            border-left: 4px solid #FFF200;
+            padding-left: 10px;
+        }
+
+        /* DISEÑO DE CUADRÍCULA (GRID) */
+        .grid-contenido {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 25px;
+        }
+        .card-multimedia {
+            background-color: #161616;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid #222;
+        }
+        .card-multimedia:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(255, 242, 0, 0.2);
+        }
+        .card-multimedia img {
+            width: 100%;
+            height: 240px;
+            object-fit: cover;
+            background-color: #222;
+        }
+        .card-info {
+            padding: 10px;
+            text-align: center;
+        }
+        .card-title {
+            font-size: 13px;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* REPRODUCTOR DE VIDEO COMPLETO */
+        .modal-reproductor {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000000;
+            z-index: 100;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        video {
+            width: 85%;
+            max-width: 1000px;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(255, 242, 0, 0.1);
+        }
+        .btn-back {
+            margin-bottom: 20px;
+            background-color: #1a1a1a;
+            color: white;
+            border: 1px solid #333;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+        .btn-back:hover {
+            background-color: #FFF200;
+            color: black;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- MENÚ LATERAL -->
+    <aside>
+        <div class="logo-container">LEMON TV</div>
+        <nav class="menu-nav">
+            <button class="btn-nav active" id="navHome" onclick="cambiarSeccion('home')">🏠 Inicio</button>
+            <button class="btn-nav" id="navMovies" onclick="cambiarSeccion('movies')">🎬 Películas</button>
+            <button class="btn-nav" id="navSeries" onclick="cambiarSeccion('series')">📺 Series</button>
+        </nav>
+    </aside>
+
+    <!-- ÁREA DE CONTENIDO -->
+    <main>
+        <header>
+            <div class="search-box">
+                <input type="text" id="buscadorInput" placeholder="Buscar títulos en Lemon TV...">
+                <button class="btn-search" onclick="buscarContenido()">Buscar</button>
+            </div>
+        </header>
+
+        <div class="content-body">
+            <h2 id="tituloSeccion">Catálogo Principal</h2>
+            <div class="grid-contenido" id="gridContenido"></div>
+        </div>
+    </main>
+
+    <!-- VENTANA DEL REPRODUCTOR -->
+    <div class="modal-reproductor" id="reproductorModal">
+        <button class="btn-back" onclick="cerrarVideo()">✕ Salir del Reproductor</button>
+        <video id="videoElemento" controls></video>
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURACIÓN DE TUS LLAVES (APIs)
+        // ==========================================
+        // 1. Pega la URL base de tu proveedor aquí (Ejemplo: la de TMDB es https://themoviedb.org)
+        const BASE_API_URL = "https://themoviedb.org"; 
+        
+        // 2. Coloca aquí tu clave que venía en el recuadro inferior de la foto
+        const API_KEY = "2dc95693911e197df99c97e7df99c97e7df2635d"; 
+        
+        // 3. Coloca aquí el Token largo si tu API te lo pide en los encabezados Bearer
+        const BEARER_TOKEN = "eyJhbGciOiJIUzI1NiJ9...";
+
+        let seccionActual = 'home';
+
+        // Función principal para pedirle datos al servidor externo usando tus credenciales
+        async function llamarAPI(endpoint) {
+            // Construimos la URL agregando tu API_KEY de manera automática
+            const urlCompleta = `${BASE_API_URL}${endpoint}?api_key=${API_KEY}&language=es-ES`;
+            
+            try {
+                const response = await fetch(urlCompleta);
+                const data = await response.json();
+                return data.results || [];
+            } catch (error) {
+                console.error("Error al consultar la API:", error);
+                return [];
+            }
+        }
+
+        // CONTROLADORES DE LAS PESTAÑAS (PELÍCULAS / SERIES)
+        async function cambiarSeccion(seccion) {
+            seccionActual = seccion;
+            
+            // Estilos del menú activo
+            document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('active'));
+            if(seccion === 'home') document.getElementById('navHome').classList.add('active');
+            if(seccion === 'movies') document.getElementById('navMovies').classList.add('active');
+            if(seccion === 'series') document.getElementById('navSeries').classList.add('active');
+
+            const grid = document.getElementById("gridContenido");
+            grid.innerHTML = "<p>Cargando catálogo de Lemon TV...</p>";
+
+            let endpoints = [];
+            if (seccion === 'home') {
+                document.getElementById("tituloSeccion").innerText = "Destacados de la Semana";
+                // Llama al contenido en tendencia
+                renderizarMosaico(await llamarAPI('/trending/all/week'));
+            } else if (seccion === 'movies') {
+                document.getElementById("tituloSeccion").innerText = "Películas en HD";
+                renderizarMosaico(await llamarAPI('/movie/popular'));
+            } else if (seccion === 'series') {
+                document.getElementById("tituloSeccion").innerText = "Series y Shows de TV";
+                renderizarMosaico(await llamarAPI('/tv/popular'));
+            }
+        }
+
+        async function buscarContenido() {
+            const query = document.getElementById("buscadorInput").value.trim();
+            if(!query) return;
+
+            document.getElementById("tituloSeccion").innerText = `Resultados para: "${query}"`;
+            const data = await llamarAPI(`/search/multi&query=${encodeURIComponent(query)}`);
+            renderizarMosaico(data);
+        }
+
+        // CONSTRUCCIÓN VISUAL DE LAS CARÁTULAS
+        function renderizarMosaico(elementos) {
+            const grid = document.getElementById("gridContenido");
+            grid.innerHTML = "";
+
+            if (!elementos || elementos.length === 0) {
+                grid.innerHTML = "<p>No hay contenido disponible temporalmente en esta sección.</p>";
+                return;
+            }
+
+            elementos.forEach(item => {
+              // Filtramos que tenga portada para que la web se vea limpia
+if (!item.poster_path && !item.backdrop_path) return;
+const card = document.createElement("div");
+card.className = "card-multimedia";
+const titulo = item.title || item.name || "Título Desconocido";
+// Si usas TMDB las imágenes se cargan desde su servidor de imágenes (w500)
+const rutaImagen = item.poster_path ? https://tmdb.org{item.poster_path} : 'placehold.co';
+card.innerHTML = <img src="${rutaImagen}" alt="${titulo}"> <div class="card-info"> <div class="card-title">${titulo}</div> </div>;
+// URL de ejemplo. En el siguiente paso la uniremos a tus fuentes de video reales
+const urlVideoPrueba = "googleapis.com";
+card.onclick = () => reproducirVideo(urlVideoPrueba);
+grid.appendChild(card);
+});
+}
+// FUNCIONES DEL REPRODUCTOR INTEGRADO
+function reproducirVideo(url) {
+const modal = document.getElementById("reproductorModal");
+const video = document.getElementById("videoElemento");
+modal.style.display = "flex";
+video.src = url;
+video.play();
+}
+function cerrarVideo() {
+const modal = document.getElementById("reproductorModal");
+const video = document.getElementById("videoElemento");
+modal.style.display = "none";
+video.pause();
+video.src = "";
+}
+// Inicializar la carga con la sección de inicio al abrir la web
+cambiarSeccion('home');
+
+
+
+---
+
+### ¿Cómo subes esta nueva versión a tu GitHub?
+Como ya configuramos tu repositorio en el paso anterior, actualizarlo es facilísimo:
+1. Entra a tu repositorio en GitHub desde el navegador.
+2. Haz clic en el archivo **`index.html`** que ya habías subido.
+3. Busca el icono de un **lápiz ✏️ (Edit this file)** arriba a la derecha.
+4. Borra todo el código viejo, pega este nuevo script de **LEMON TV** completo y haz clic abajo en el botón verde **"Commit changes"**.
+
+En 1 minuto tu página web se actualizará sola.
+
+<FollowUp>
+¡Ya tenemos la base de **LEMON TV** con su menú y buscador automático! Ahora cuéntame: las películas de tu API, ¿tienen un servidor de streaming propio con enlaces directos, o necesitas que usemos un sistema de servidores externos (como un iframe de reproductores públicos)? Pásame un ejemplo de **cómo te entrega la API los enlaces de video** para dejar el reproductor automatizado de forma definitiva.
+</FollowUp>
