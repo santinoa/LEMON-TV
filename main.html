@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xuper Cinema Pro - Web Edition</title>
+    <style>
+        /* ESTILOS ESTILO NETFLIX / PLUTO TV */
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #1a1a1a;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #E50914;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #E50914;
+        }
+        .search-container {
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 300px;
+            border-radius: 4px;
+            border: 1px solid #444;
+            background-color: #222;
+            color: white;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #E50914;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #b80710;
+        }
+        .container {
+            padding: 20px;
+        }
+        /* CUADRÍCULA DE PELÍCULAS */
+        .grid-catalogo {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .movie-card {
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .movie-card:hover {
+            transform: scale(1.05);
+        }
+        .movie-card img {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            border-radius: 6px;
+            background-color: #2e2e2e;
+        }
+        .movie-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        /* REPRODUCTOR DE VIDEO OCULTO POR DEFECTO */
+        .player-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.95);
+            z-index: 999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        video {
+            width: 80%;
+            max-width: 900px;
+            border: 2px solid #333;
+            border-radius: 8px;
+        }
+        .btn-cerrar {
+            margin-bottom: 20px;
+            background-color: #333;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">XUPER CINEMA</div>
+        <div class="search-container">
+            <input type="text" id="inputBuscar" placeholder="Buscar películas o series...">
+            <button onclick="ejecutarBusqueda()">Buscar</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <h2 id="tituloSeccion">Películas Disponibles</h2>
+        <!-- Aquí se cargarán las carátulas dinámicamente -->
+        <div class="grid-catalogo" id="gridCatalogo"></div>
+    </div>
+
+    <!-- REPRODUCTOR DE VIDEO INTEGRADO -->
+    <div class="player-container" id="playerContainer">
+        <button class="btn-cerrar" onclick="cerrarReproductor()">✕ Volver al Catálogo</button>
+        <video id="reproductorVideo" controls></video>
+    </div>
+
+    <script>
+        // === CONFIGURACIÓN DE TU API ===
+        // Pega aquí la dirección URL de la API gratuita que conseguiste
+        const API_URL = "AQUÍ_PEGA_TU_API_URL"; 
+
+        // Función para buscar y conectar con tu API
+        async function ejecutarBusqueda() {
+            const query = document.getElementById("inputBuscar").value.trim();
+            if (!query) return;
+
+            document.getElementById("tituloSeccion").innerText = `Resultados para: "${query}"`;
+            const grid = document.getElementById("gridCatalogo");
+            grid.innerHTML = "<p>Buscando contenido...</p>";
+
+            try {
+                // Hacemos la consulta a tu API externa
+                const response = await fetch(`${API_URL}?search=${query}`);
+                const data = await response.json();
+                
+                // Mapear los resultados de tu API (Ajusta 'data.results' según el formato de tu API)
+                renderizarPeliculas(data.results || data);
+            } catch (error) {
+                grid.innerHTML = "<p>Error al conectar con la API de películas.</p>";
+                // Datos de demostración por si la API aún no está conectada o requiere tokens
+                renderizarPrototipoPrueba();
+            }
+        }
+
+        function renderizarPeliculas(peliculas) {
+            const grid = document.getElementById("gridCatalogo");
+            grid.innerHTML = "";
+
+            peliculas.forEach(pelicula => {
+                const card = document.createElement("div");
+                card.className = "movie-card";
+                
+                // Extraemos título, portada y video según los parámetros de tu API
+                const titulo = pelicula.title || pelicula.name || "Sin título";
+                const portada = pelicula.poster || pelicula.image || "";
+                const videoUrl = pelicula.video_url || pelicula.stream_url || pelicula.file;
+
+                card.innerHTML = `
+                    <img src="${portada}" alt="${titulo}" onerror="this.src='https://placehold.co'">
+                    <div class="movie-title">${titulo}</div>
+                `;
+                
+                card.onclick = () => abrirReproductor(videoUrl);
+                grid.appendChild(card);
+            });
+        }
+
+        function renderizarPrototipoPrueba() {
+            const peliculasPrueba = [
+                { title: "Video de Prueba 1", poster: "", video_url: "https://googleapis.com" },
+                { title: "Video de Prueba 2", poster: "", video_url: "https://googleapis.com" }
+            ];
+            renderizarPeliculas(peliculasPrueba);
+        }
+
+        function abrirReproductor(url) {
+            if (!url) {
+                alert("Esta película no tiene un enlace de reproducción válido.");
+                return;
+            }
+            const playerContainer = document.getElementById("playerContainer");
+            const video = document.getElementById("reproductorVideo");
+            
+            playerContainer.style.display = "flex";
+            video.src = url;
+            video.play();
+        }
+
+        function cerrarReproductor() {
+            const playerContainer = document.getElementById("playerContainer");
+            const video = document.getElementById("reproductorVideo");
+            
+            playerContainer.style.display = "none";
+            video.pause();
+            video.src = "";
+        }
+
+        // Cargar películas de prueba al abrir la página por primera vez
+        renderizarPrototipoPrueba();
+    </script>
+</body>
+</html>
