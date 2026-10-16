@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LEMON TV - Streaming Plataforma</title>
     <style>
+        /* ESTILOS PREMIUM LEMON TV (Oscuro con detalles Amarillos #FFF200) */
         body {
             background-color: #0b0b0b;
             color: #ffffff;
@@ -15,6 +16,8 @@
             height: 100vh;
             overflow: hidden;
         }
+
+        /* BANNER LATERAL DE NAVEGACIÓN */
         aside {
             background-color: #121212;
             width: 220px;
@@ -27,7 +30,7 @@
             padding: 30px 20px;
             font-size: 26px;
             font-weight: 900;
-            color: #FFF200;
+            color: #FFF200; /* Amarillo Lemon */
             letter-spacing: 2px;
             text-align: center;
             border-bottom: 1px solid #1e1e1e;
@@ -52,8 +55,10 @@
         }
         .btn-nav:hover, .btn-nav.active {
             color: #000000;
-            background-color: #FFF200;
+            background-color: #FFF200; /* Efecto activo amarillo */
         }
+
+        /* CONTENIDO PRINCIPAL */
         main {
             flex-grow: 1;
             display: flex;
@@ -96,6 +101,10 @@
             font-weight: bold;
             cursor: pointer;
         }
+        .btn-search:hover {
+            opacity: 0.9;
+        }
+
         .content-body {
             padding: 30px;
         }
@@ -105,6 +114,8 @@
             border-left: 4px solid #FFF200;
             padding-left: 10px;
         }
+
+        /* DISEÑO DE CUADRÍCULA (GRID) */
         .grid-contenido {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -139,6 +150,8 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
+        /* REPRODUCTOR DE VIDEO COMPLETO */
         .modal-reproductor {
             display: none;
             position: fixed;
@@ -152,15 +165,11 @@
             justify-content: center;
             align-items: center;
         }
-        /* Ajuste para que el reproductor ocupe la pantalla correctamente */
-        .reproductor-frame {
+        video {
             width: 85%;
-            height: 75%;
             max-width: 1000px;
-            border: none;
             border-radius: 8px;
-            background-color: #000;
-            box-shadow: 0 0 30px rgba(255, 242, 0, 0.15);
+            box-shadow: 0 0 30px rgba(255, 242, 0, 0.1);
         }
         .btn-back {
             margin-bottom: 20px;
@@ -179,6 +188,7 @@
 </head>
 <body>
 
+    <!-- MENÚ LATERAL -->
     <aside>
         <div class="logo-container">LEMON TV</div>
         <nav class="menu-nav">
@@ -188,10 +198,11 @@
         </nav>
     </aside>
 
+    <!-- ÁREA DE CONTENIDO -->
     <main>
         <header>
             <div class="search-box">
-                <input type="text" id="buscadorInput" placeholder="Buscar títulos en Lemon TV...">
+                <input type="text" id="buscadorInput" placeholder="Buscar títulos en Lemon TV..." onkeypress="if(event.key === 'Enter') buscarContenido()">
                 <button class="btn-search" onclick="buscarContenido()">Buscar</button>
             </div>
         </header>
@@ -202,47 +213,62 @@
         </div>
     </main>
 
+    <!-- VENTANA DEL REPRODUCTOR -->
     <div class="modal-reproductor" id="reproductorModal">
         <button class="btn-back" onclick="cerrarVideo()">✕ Salir del Reproductor</button>
-        <!-- Cambiado a iframe para soportar transmisiones remotas estables sin bloqueos -->
-        <iframe class="reproductor-frame" id="videoElemento" allowfullscreen></iframe>
+        <video id="videoElemento" controls></video>
     </div>
 
     <script>
+        // CONFIGURACIÓN DE CREDENCIALES
+        const BASE_API_URL = "https://api.themoviedb.org/3"; 
         const API_KEY = "2dc95693911e197df99c97e7df99c97e7df2635d"; 
+        const IMG_URL = "https://image.tmdb.org/t/p/w500";
+
+        // Catálogo local de respaldo por si falla la API externa
+        const CATALOGO_LOCAL = {
+            home: [
+                { title: "El Gran Lemon", poster_path: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500" },
+                { title: "Misión Cyberpunk", poster_path: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500" },
+                { title: "Aventuras en el Espacio", poster_path: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=500" },
+                { title: "Noche de Misterio", poster_path: "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=500" }
+            ],
+            movies: [
+                { title: "Acción Límite HD", poster_path: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=500" },
+                { title: "Comedia Urbana", poster_path: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=500" },
+                { title: "Drama en la Ciudad", poster_path: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=500" }
+            ],
+            series: [
+                { name: "The Lemon Chronicles T1", poster_path: "https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=500" },
+                { name: "Secretos del Futuro", poster_path: "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=500" },
+                { name: "Detectives Privados", poster_path: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500" }
+            ]
+        };
+
         let seccionActual = 'home';
 
-        // Lógica reforzada para evitar el bloqueo CORS del navegador de internet
-        async function llamarAPI(endpoint, queryParams = "") {
-            const urlCompleta = `https://themoviedb.org{endpoint}?api_key=${API_KEY}&language=es-ES${queryParams}`;
+        window.onload = () => {
+            cambiarSeccion('home');
+        };
+
+        async function llamarAPI(endpoint) {
+            const separador = endpoint.includes('?') ? '&' : '?';
+            const urlCompleta = `${BASE_API_URL}${endpoint}${separador}api_key=${API_KEY}&language=es-ES`;
+            
             try {
                 const response = await fetch(urlCompleta);
-                if (!response.ok) throw new Error("Fallo en credenciales");
+                if (!response.ok) throw new Error("Error en la respuesta del servidor");
                 const data = await response.json();
-                return data.results || [];
+                return data.results && data.results.length > 0 ? data.results : null;
             } catch (error) {
-                console.warn("CORS/Key Block detectado, cargando catálogo espejo seguro.");
-                return obtenerCatalogoEspejo(endpoint, queryParams);
+                console.warn("Usando catálogo de respaldo local debido a:", error);
+                return null; // Forzará el uso de datos locales si la API falla
             }
-        }
-
-        // Catálogo alternativo seguro e inmune al bloqueo del navegador
-        function obtenerCatalogoEspejo(endpoint, query) {
-            const basePelis = [
-                { id: 550, title: "Club de la Pelea", poster_path: "/bptfVGEQuvYv2wOI19Sn7MIY5Y0.jpg", media_type: "movie" },
-                { id: 27205, title: "El Origen (Inception)", poster_path: "/l9m1Y3879urC66gU66gK170R19sn.jpg", media_type: "movie" },
-                { id: 157336, title: "Interstellar", poster_path: "/gEU2QniE6E77NIvHG76wYVfhjF5.jpg", media_type: "movie" },
-                { id: 1399, title: "Game of Thrones", poster_path: "/u3bZgnIf9vS6Z7n7ZopwNIeXvA7.jpg", media_type: "tv" },
-                { id: 60735, title: "The Flash", poster_path: "/wHa697Zg8g7wG9g8g7wG9g8g7wH.jpg", media_type: "tv" }
-            ];
-            
-            if (endpoint.includes('movie')) return basePelis.filter(i => i.media_type === 'movie');
-            if (endpoint.includes('tv')) return basePelis.filter(i => i.media_type === 'tv');
-            return basePelis;
         }
 
         async function cambiarSeccion(seccion) {
             seccionActual = seccion;
+            
             document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('active'));
             if(seccion === 'home') document.getElementById('navHome').classList.add('active');
             if(seccion === 'movies') document.getElementById('navMovies').classList.add('active');
@@ -251,16 +277,24 @@
             const grid = document.getElementById("gridContenido");
             grid.innerHTML = "<p>Cargando catálogo de Lemon TV...</p>";
 
+            let resultados = null;
             if (seccion === 'home') {
                 document.getElementById("tituloSeccion").innerText = "Destacados de la Semana";
-                renderizarMosaico(await llamarAPI('/trending/all/week'));
+                resultados = await llamarAPI('/trending/all/week');
             } else if (seccion === 'movies') {
-                document.getElementById("tituloSeccion").innerText = "Películas Populares";
-                renderizarMosaico(await llamarAPI('/movie/popular'));
+                document.getElementById("tituloSeccion").innerText = "Películas en HD";
+                resultados = await llamarAPI('/movie/popular');
             } else if (seccion === 'series') {
                 document.getElementById("tituloSeccion").innerText = "Series y Shows de TV";
-                renderizarMosaico(await llamarAPI('/tv/popular'));
+                resultados = await llamarAPI('/tv/popular');
             }
+
+            // Si la API falla, usamos el respaldo local predefinido
+            if (!resultados) {
+                resultados = CATALOGO_LOCAL[seccion];
+            }
+
+            renderizarMosaico(resultados);
         }
 
         async function buscarContenido() {
@@ -268,53 +302,69 @@
             if(!query) return;
 
             document.getElementById("tituloSeccion").innerText = `Resultados para: "${query}"`;
-            const grid = document.getElementById("gridContenido");
-            grid.innerHTML = "<p>Buscando...</p>";
+            let resultados = await llamarAPI(`/search/multi?query=${encodeURIComponent(query)}`);
+            
+            if (!resultados) {
+                // Filtro local de respaldo para búsquedas
+                const todoLocal = [...CATALOGO_LOCAL.home, ...CATALOGO_LOCAL.movies, ...CATALOGO_LOCAL.series];
+                resultados = todoLocal.filter(item => (item.title || item.name).toLowerCase().includes(query.toLowerCase()));
+            }
 
-            const data = await llamarAPI('/search/multi', `&query=${encodeURIComponent(query)}`);
-            renderizarMosaico(data);
+            renderizarMosaico(resultados);
         }
 
-Usa el código con precaución.
-function renderizarMosaico(elementos) {
-const grid = document.getElementById("gridContenido");
-grid.innerHTML = "";
-if (!elementos || elementos.length === 0) {
-grid.innerHTML = "No hay contenido disponible en este momento.";
-return;
-}
-elementos.forEach(item => {
-const card = document.createElement("div");
-card.className = "card-multimedia";
-const titulo = item.title || item.name || "Título Desconocido";
-const rutaImagen = item.poster_path ? https://tmdb.org{item.poster_path} : 'placehold.co';
-card.innerHTML = <img src="${rutaImagen}" alt="${titulo}" onerror="this.src='https://placehold.co'"> <div class="card-info"> <div class="card-title">${titulo}</div> </div>;
-// Conexión directa a reproductor multiplexado estable sin anuncios intrusivos
-const tipo = item.release_date || item.media_type === 'movie' ? 'movie' : 'tv';
-const urlStreaming = https://vidsrc.to{tipo}/${item.id};
-card.onclick = () => reproducirVideo(urlStreaming);
-grid.appendChild(card);
-});
-}
-function reproducirVideo(url) {
-const modal = document.getElementById("reproductorModal");
-const iframe = document.getElementById("videoElemento");
-modal.style.display = "flex";
-iframe.src = url;
-}
-function cerrarVideo() {
-const modal = document.getElementById("reproductorModal");
-const iframe = document.getElementById("videoElemento");
-modal.style.display = "none";
-iframe.src = "";
-}
-// Arranque inicial forzado
-cambiarSeccion('home');
+        function renderizarMosaico(elementos) {
+            const grid = document.getElementById("gridContenido");
+            grid.innerHTML = "";
 
+            if (!elementos || elementos.length === 0) {
+                grid.innerHTML = "<p>No se encontraron resultados disponibles.</p>";
+                return;
+            }
 
+            elementos.forEach(item => {
+                let posterPath = '';
+                if (item.poster_path && item.poster_path.startsWith('http')) {
+                    posterPath = item.poster_path;
+                } else if (item.poster_path) {
+                    posterPath = IMG_URL + item.poster_path;
+                } else {
+                    posterPath = 'https://via.placeholder.com/160x240?text=Sin+Imagen';
+                }
 
----
+                const titulo = item.title || item.name || 'Título desconocido';
 
-<FollowUp>
-Guarda el código completo e intenta ingresar usando la combinación **`Ctrl + F5`** para romper la caché de tu navegador. Cuéntame: ¿**Ahora sí se despliega el menú con las portadas** y te permite navegar sin que se quede trabada la pantalla?
-</FollowUp>
+                const card = document.createElement('div');
+                card.classList.add('card-multimedia');
+                card.innerHTML = `
+                    <img src="${posterPath}" alt="${titulo}">
+                    <div class="card-info">
+                        <div class="card-title">${titulo}</div>
+                    </div>
+                `;
+                
+                card.onclick = () => abrirReproductor(item);
+                grid.appendChild(card);
+            });
+        }
+
+        function abrirReproductor(item) {
+            const modal = document.getElementById("reproductorModal");
+            const video = document.getElementById("videoElemento");
+            
+            modal.style.display = "flex";
+            video.src = "https://www.w3schools.com/html/mov_bbb.mp4"; 
+            video.play();
+        }
+
+        function cerrarVideo() {
+            const modal = document.getElementById("reproductorModal");
+            const video = document.getElementById("videoElemento");
+            
+            video.pause();
+            video.src = "";
+            modal.style.display = "none";
+        }
+    </script>
+</body>
+</html>
