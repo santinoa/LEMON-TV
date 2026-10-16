@@ -101,6 +101,9 @@
             font-weight: bold;
             cursor: pointer;
         }
+        .btn-search:hover {
+            opacity: 0.9;
+        }
 
         .content-body {
             padding: 30px;
@@ -217,36 +220,52 @@
     </div>
 
     <script>
-        // ==========================================
-        // CONFIGURACIÓN DE TUS LLAVES (APIs)
-        // ==========================================
+        // CONFIGURACIÓN DE CREDENCIALES
         const BASE_API_URL = "https://api.themoviedb.org/3"; 
         const API_KEY = "2dc95693911e197df99c97e7df99c97e7df2635d"; 
         const IMG_URL = "https://image.tmdb.org/t/p/w500";
 
+        // Catálogo local de respaldo por si falla la API externa
+        const CATALOGO_LOCAL = {
+            home: [
+                { title: "El Gran Lemon", poster_path: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500" },
+                { title: "Misión Cyberpunk", poster_path: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=500" },
+                { title: "Aventuras en el Espacio", poster_path: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=500" },
+                { title: "Noche de Misterio", poster_path: "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=500" }
+            ],
+            movies: [
+                { title: "Acción Límite HD", poster_path: "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=500" },
+                { title: "Comedia Urbana", poster_path: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=500" },
+                { title: "Drama en la Ciudad", poster_path: "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=500" }
+            ],
+            series: [
+                { name: "The Lemon Chronicles T1", poster_path: "https://images.unsplash.com/photo-1522869635100-9f4c5e86aa37?w=500" },
+                { name: "Secretos del Futuro", poster_path: "https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=500" },
+                { name: "Detectives Privados", poster_path: "https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500" }
+            ]
+        };
+
         let seccionActual = 'home';
 
-        // Cargar contenido inicial al abrir la página
         window.onload = () => {
             cambiarSeccion('home');
         };
 
-        // Función principal para pedirle datos al servidor externo usando tus credenciales
         async function llamarAPI(endpoint) {
             const separador = endpoint.includes('?') ? '&' : '?';
             const urlCompleta = `${BASE_API_URL}${endpoint}${separador}api_key=${API_KEY}&language=es-ES`;
             
             try {
                 const response = await fetch(urlCompleta);
+                if (!response.ok) throw new Error("Error en la respuesta del servidor");
                 const data = await response.json();
-                return data.results || [];
+                return data.results && data.results.length > 0 ? data.results : null;
             } catch (error) {
-                console.error("Error al consultar la API:", error);
-                return [];
+                console.warn("Usando catálogo de respaldo local debido a:", error);
+                return null; // Forzará el uso de datos locales si la API falla
             }
         }
 
-        // CONTROLADORES DE LAS PESTAÑAS (PELÍCULAS / SERIES)
         async function cambiarSeccion(seccion) {
             seccionActual = seccion;
             
@@ -258,16 +277,24 @@
             const grid = document.getElementById("gridContenido");
             grid.innerHTML = "<p>Cargando catálogo de Lemon TV...</p>";
 
+            let resultados = null;
             if (seccion === 'home') {
                 document.getElementById("tituloSeccion").innerText = "Destacados de la Semana";
-                renderizarMosaico(await llamarAPI('/trending/all/week'));
+                resultados = await llamarAPI('/trending/all/week');
             } else if (seccion === 'movies') {
                 document.getElementById("tituloSeccion").innerText = "Películas en HD";
-                renderizarMosaico(await llamarAPI('/movie/popular'));
+                resultados = await llamarAPI('/movie/popular');
             } else if (seccion === 'series') {
                 document.getElementById("tituloSeccion").innerText = "Series y Shows de TV";
-                renderizarMosaico(await llamarAPI('/tv/popular'));
+                resultados = await llamarAPI('/tv/popular');
             }
+
+            // Si la API falla, usamos el respaldo local predefinido
+            if (!resultados) {
+                resultados = CATALOGO_LOCAL[seccion];
+            }
+
+            renderizarMosaico(resultados);
         }
 
         async function buscarContenido() {
@@ -275,22 +302,36 @@
             if(!query) return;
 
             document.getElementById("tituloSeccion").innerText = `Resultados para: "${query}"`;
-            const data = await llamarAPI(`/search/multi?query=${encodeURIComponent(query)}`);
-            renderizarMosaico(data);
+            let resultados = await llamarAPI(`/search/multi?query=${encodeURIComponent(query)}`);
+            
+            if (!resultados) {
+                // Filtro local de respaldo para búsquedas
+                const todoLocal = [...CATALOGO_LOCAL.home, ...CATALOGO_LOCAL.movies, ...CATALOGO_LOCAL.series];
+                resultados = todoLocal.filter(item => (item.title || item.name).toLowerCase().includes(query.toLowerCase()));
+            }
+
+            renderizarMosaico(resultados);
         }
 
-        // CONSTRUCCIÓN VISUAL DE LAS CARÁTULAS
         function renderizarMosaico(elementos) {
             const grid = document.getElementById("gridContenido");
             grid.innerHTML = "";
 
             if (!elementos || elementos.length === 0) {
-                grid.innerHTML = "<p>No hay contenido disponible temporalmente en esta sección.</p>";
+                grid.innerHTML = "<p>No se encontraron resultados disponibles.</p>";
                 return;
             }
 
             elementos.forEach(item => {
-                const posterPath = item.poster_path ? IMG_URL + item.poster_path : 'https://via.placeholder.com/160x240?text=Sin+Imagen';
+                let posterPath = '';
+                if (item.poster_path && item.poster_path.startsWith('http')) {
+                    posterPath = item.poster_path;
+                } else if (item.poster_path) {
+                    posterPath = IMG_URL + item.poster_path;
+                } else {
+                    posterPath = 'https://via.placeholder.com/160x240?text=Sin+Imagen';
+                }
+
                 const titulo = item.title || item.name || 'Título desconocido';
 
                 const card = document.createElement('div');
@@ -307,13 +348,11 @@
             });
         }
 
-        // REPRODUCTOR DE VIDEO
         function abrirReproductor(item) {
             const modal = document.getElementById("reproductorModal");
             const video = document.getElementById("videoElemento");
             
             modal.style.display = "flex";
-            // Nota: TMDb no aloja videos completos; aquí puedes conectar tu fuente de video o un tráiler de prueba:
             video.src = "https://www.w3schools.com/html/mov_bbb.mp4"; 
             video.play();
         }
