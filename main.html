@@ -199,7 +199,7 @@
     <main>
         <header>
             <div class="search-box">
-                <input type="text" id="buscadorInput" placeholder="Buscar títulos en Lemon TV...">
+                <input type="text" id="buscadorInput" placeholder="Buscar títulos en Lemon TV..." onkeypress="if(event.key === 'Enter') buscarContenido()">
                 <button class="btn-search" onclick="buscarContenido()">Buscar</button>
             </div>
         </header>
@@ -220,21 +220,21 @@
         // ==========================================
         // CONFIGURACIÓN DE TUS LLAVES (APIs)
         // ==========================================
-        // 1. Pega la URL base de tu proveedor aquí (Ejemplo: la de TMDB es https://themoviedb.org)
-        const BASE_API_URL = "https://themoviedb.org"; 
-        
-        // 2. Coloca aquí tu clave que venía en el recuadro inferior de la foto
+        const BASE_API_URL = "https://api.themoviedb.org/3"; 
         const API_KEY = "2dc95693911e197df99c97e7df99c97e7df2635d"; 
-        
-        // 3. Coloca aquí el Token largo si tu API te lo pide en los encabezados Bearer
-        const BEARER_TOKEN = "eyJhbGciOiJIUzI1NiJ9...";
+        const IMG_URL = "https://image.tmdb.org/t/p/w500";
 
         let seccionActual = 'home';
 
+        // Cargar contenido inicial al abrir la página
+        window.onload = () => {
+            cambiarSeccion('home');
+        };
+
         // Función principal para pedirle datos al servidor externo usando tus credenciales
         async function llamarAPI(endpoint) {
-            // Construimos la URL agregando tu API_KEY de manera automática
-            const urlCompleta = `${BASE_API_URL}${endpoint}?api_key=${API_KEY}&language=es-ES`;
+            const separador = endpoint.includes('?') ? '&' : '?';
+            const urlCompleta = `${BASE_API_URL}${endpoint}${separador}api_key=${API_KEY}&language=es-ES`;
             
             try {
                 const response = await fetch(urlCompleta);
@@ -250,7 +250,6 @@
         async function cambiarSeccion(seccion) {
             seccionActual = seccion;
             
-            // Estilos del menú activo
             document.querySelectorAll('.btn-nav').forEach(b => b.classList.remove('active'));
             if(seccion === 'home') document.getElementById('navHome').classList.add('active');
             if(seccion === 'movies') document.getElementById('navMovies').classList.add('active');
@@ -259,10 +258,8 @@
             const grid = document.getElementById("gridContenido");
             grid.innerHTML = "<p>Cargando catálogo de Lemon TV...</p>";
 
-            let endpoints = [];
             if (seccion === 'home') {
                 document.getElementById("tituloSeccion").innerText = "Destacados de la Semana";
-                // Llama al contenido en tendencia
                 renderizarMosaico(await llamarAPI('/trending/all/week'));
             } else if (seccion === 'movies') {
                 document.getElementById("tituloSeccion").innerText = "Películas en HD";
@@ -278,7 +275,7 @@
             if(!query) return;
 
             document.getElementById("tituloSeccion").innerText = `Resultados para: "${query}"`;
-            const data = await llamarAPI(`/search/multi&query=${encodeURIComponent(query)}`);
+            const data = await llamarAPI(`/search/multi?query=${encodeURIComponent(query)}`);
             renderizarMosaico(data);
         }
 
@@ -293,3 +290,42 @@
             }
 
             elementos.forEach(item => {
+                const posterPath = item.poster_path ? IMG_URL + item.poster_path : 'https://via.placeholder.com/160x240?text=Sin+Imagen';
+                const titulo = item.title || item.name || 'Título desconocido';
+
+                const card = document.createElement('div');
+                card.classList.add('card-multimedia');
+                card.innerHTML = `
+                    <img src="${posterPath}" alt="${titulo}">
+                    <div class="card-info">
+                        <div class="card-title">${titulo}</div>
+                    </div>
+                `;
+                
+                card.onclick = () => abrirReproductor(item);
+                grid.appendChild(card);
+            });
+        }
+
+        // REPRODUCTOR DE VIDEO
+        function abrirReproductor(item) {
+            const modal = document.getElementById("reproductorModal");
+            const video = document.getElementById("videoElemento");
+            
+            modal.style.display = "flex";
+            // Nota: TMDb no aloja videos completos; aquí puedes conectar tu fuente de video o un tráiler de prueba:
+            video.src = "https://www.w3schools.com/html/mov_bbb.mp4"; 
+            video.play();
+        }
+
+        function cerrarVideo() {
+            const modal = document.getElementById("reproductorModal");
+            const video = document.getElementById("videoElemento");
+            
+            video.pause();
+            video.src = "";
+            modal.style.display = "none";
+        }
+    </script>
+</body>
+</html>
